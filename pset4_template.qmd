@@ -43,6 +43,7 @@ Please refer to the minilesson on code style
 ```{python}
 import pandas as pd
 import altair as alt
+alt.renderers.enable("png")
 
 import warnings 
 warnings.filterwarnings('ignore')
@@ -154,7 +155,7 @@ chart = alt.Chart(observations, title = 'The Number of Observations by Year').ma
     alt.X('year:O', title = 'Year'),
     alt.Y('count:Q', title = 'Number of Observations', scale = alt.Scale(domainMin = 7000)),
 ).properties(
-    width = 200,  
+    width = 300,  
     height = 100  
 )
 chart.show()
@@ -173,7 +174,7 @@ chart = alt.Chart(unique_hospitals, title = 'The Number of Unique Hospitals by Y
     alt.X('year:O', title = 'Year'),
     alt.Y('unique_hospitals:Q', title = 'Number of Unique Hospitals', scale = alt.Scale(domainMin = 7000)),
 ).properties(
-    width = 200,  
+    width = 300,  
     height = 100  
 )
 chart.show()
