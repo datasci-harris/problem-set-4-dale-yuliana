@@ -42,12 +42,75 @@ Please refer to the minilesson on code style
 **Important:** Repositories are for tracking code. **Do not commit the data or shapefiles to your repo.** The best way to do this is with `.gitignore`, which we have covered in class. If you do accidentally commit the data, Github has a [guide](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github#removing-files-from-a-repositorys-history). The best course of action depends on whether you have pushed yet. This also means that both partners will have to download the initial raw data and any data cleaning code will need to be re-run on both partners' computers. 
 
 ## Download and explore the Provider of Services (POS) file (10 pts)
+```{python}
+import pandas as pd
 
-1. 
-2. 
+
+```
+
+##### 1. 
+I pulled the following 7 variables:
+
+PRVDR_CTGRY_SBTYP_CD (1 = short term),
+PRVDR_CTGRY_CD (1 = hospitals),
+PRVDR_NUM,
+PGM_TRMNTN_CD (00 = active provider),
+ZIP_CD,
+TRMNTN_EXPRTN_DT (not necessarily need),
+FAC_NAME.
+
+##### 2. 
+```{python}
+# Load each CSV file
+pos2016 = pd.read_csv("pos2016.csv")
+pos2016['year'] = 2016
+
+# Define a function to focus on short term hospitals
+def filter_short_term_hospitals(data):
+    return data[
+        (data['PRVDR_CTGRY_SBTYP_CD'] == 1) &
+        (data['PRVDR_CTGRY_CD'] == 1)
+    ]
+
+# Subset 2016
+short_term_pos2016 = filter_short_term_hospitals(pos2016)
+```
+    
     a.
     b.
-3. 
+
+
+##### 3. 
+```{python}
+pos2017 = pd.read_csv("pos2017.csv")
+pos2017['year'] = 2017
+# Subset 2017
+short_term_pos2017 = filter_short_term_hospitals(pos2017)
+
+
+pos2018 = pd.read_csv("pos2018.csv")
+pos2018['year'] = 2018
+# Subset 2018
+short_term_pos2018 = filter_short_term_hospitals(pos2018)
+
+pos2019 = pd.read_csv("pos2019.csv")
+pos2019['year'] = 2019
+# Subset 2019
+short_term_pos2019 = filter_short_term_hospitals(pos2019)
+```
+
+
+```{python}
+# ref from https://www.askpython.com/python-modules/pandas/combine-csv-files-using-python
+
+# Concatenate DataFrames
+short_term_pos2016_2019 = pd.concat([short_term_pos2016, short_term_pos2017, short_term_pos2018, short_term_pos2019], ignore_index=True)
+```
+
+```{python}
+pos = short_term_pos2016_2019
+```
+
 4. 
     a.
     b.
