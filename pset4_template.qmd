@@ -186,11 +186,53 @@ These two graphs are almost the same, which shows that the dataset does not cont
 ## Identify hospital closures in POS file (15 pts) (*)
 
 1. 
+```{python}
+pos['ZIP_CD'] = pos['ZIP_CD'].astype(str) # convert zipcode to str
+
+# find the close pos after 2016, subgroup
+close = pos[(pos["PGM_TRMNTN_CD"] == 1) & (pos["year"] > 2016)]
+close = close.drop_duplicates(subset=["FAC_NAME"], keep="first")
+close = close[["FAC_NAME", "ZIP_CD", "year"]]
+
+print(len(close), "hospitals that were active in 2016 were suspected to have closed by 2019.")
+```
+
 2. 
+```{python}
+close_sorted = close.sort_values(by = "FAC_NAME", ascending=True).reset_index(drop=True)
+close_sorted.head(10)
+```
+
 3. 
-    a.
+```{python}
+# number of active hospital by zipcode
+active = pos[(pos["PGM_TRMNTN_CD"] == 0) & (pos["year"] > 2016)]
+active_zip = active.groupby(["ZIP_CD", "year"]).agg({
+    "FAC_NAME" : "count",
+}).reset_index()
+
+# number of active hospitals does not decrease
+active_zip['future'] = active_zip.groupby('ZIP_CD')['FAC_NAME'].shift(-1)
+active_diff = active_zip[active_zip["future"] >= active_zip["FAC_NAME"]]
+
+# remove any suspected hospital closures
+close["suspect"] = close["ZIP_CD"].isin(active_diff["ZIP_CD"])
+active_clean = close[close["suspect"] == False]
+```
+
     b.
+```{python}
+suspected_closure = close[close["suspect"]]
+print(len(suspected_closure), "hospitals fit this definition of potentially being a merger/acquisition.")
+
+print(len(active_clean), "hospitals have left after correcting for this.")
+```
+
     c.
+```{python}
+active_clean_sorted = active_clean.sort_values(by = "FAC_NAME", ascending=True).reset_index(drop=True)
+active_clean_sorted.head(10)
+```
 
 ## Download Census zip code shapefile (10 pt) 
 
