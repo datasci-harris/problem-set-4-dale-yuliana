@@ -44,6 +44,8 @@ Please refer to the minilesson on code style
 import pandas as pd
 import altair as alt
 alt.renderers.enable("png")
+import geopandas as gpd
+import matplotlib.pyplot as plt
 
 import warnings 
 warnings.filterwarnings('ignore')
@@ -236,10 +238,66 @@ active_clean_sorted.head(10)
 
 ## Download Census zip code shapefile (10 pt) 
 
-1. 
-    a.
-    b. 
-2. 
+##### 1.a
+The files in the folder contain the following 5 type files:
+
+```{python}
+from IPython.display import Image
+Image("file_type.png")
+```
+
+ .shp (Shapefile): This is the main file that stores the geometric shape data.
+
+.shx (Shape Index Format): This index file  provides the spatial index for locating the features in the .shp file.
+
+.dbf (Database File): This file contains attribute data in a tabular format, which is associated with each geometric shape in the .shp file.
+
+.prj (Projection File): This file contains information about the coordinate system and projection used in the .shp file. 
+
+.xml (Metadata): This file may contain metadata information about the shapefile, describing the content, source, creation date, and other relevant details.
+
+##### 1.b
+From the image, we can see the sizes of the unzipped files:
+
+gz_2010_us_860_00_500k.shp: 837.5 MB 
+gz_2010_us_860_00_500k.shx: 265 KB
+gz_2010_us_860_00_500k.dbf: 6.4 MB 
+gz_2010_us_860_00_500k.prj: 165 bytes
+gz_2010_us_860_00_500k.xml: 16 KB
+
+This size information indicates that the .shp file is the largest as it holds the spatial data.
+
+##### 2.
+
+```{python}
+# Load the shapefile
+zip_codes = gpd.read_file("gz_2010_us_860_00_500k.shp")
+```
+
+```{python}
+# Texas zip code prefixes based on wiki
+# Ref from https://simple.wikipedia.org/wiki/List_of_ZIP_Code_prefixes#700s
+texas_prefixes = ['733'] + [str(prefix) for prefix in range(750, 800)]
+texas_prefixes = ['733'] + [str(prefix) for prefix in range(750, 800)]
+# Ensure consistent string format
+texas_zip_codes['ZCTA5'] = texas_zip_codes['ZCTA5'].astype(str).str.strip()
+# Filter based on the first three characters of the ZIP column
+texas_zip_codes = zip_codes[zip_codes['ZCTA5'].str[:3].isin(texas_prefixes)]
+
+# Convert ZIP_CD to string
+short_term_pos2016['ZIP_CD'] = pd.to_numeric(short_term_pos2016['ZIP_CD'], errors='coerce').fillna(0).astype(int)
+short_term_pos2016['ZIP_CD'] = short_term_pos2016['ZIP_CD'].astype(str)
+
+# Calculate the number of hospitals per zip code in 2016
+hospitals_per_zip = short_term_pos2016.groupby('ZIP_CD').size().reset_index(name = 'hospitals')
+
+# Merge with Texas zip code data
+texas_hospitals = texas_zip_codes.merge(hospitals_per_zip, left_on='ZCTA5', right_on='ZIP_CD', how='left')
+texas_hospitals['hospitals'] = texas_hospitals['hospitals'].fillna(0)
+
+# Draw the choropleth plot
+texas_hospitals.plot(column = "hospitals", legend=True).set_axis_off()
+```
 
 ## Calculate zip code’s distance to the nearest hospital (20 pts) (*)
 
