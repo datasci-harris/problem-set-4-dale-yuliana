@@ -278,11 +278,12 @@ zip_codes = gpd.read_file("gz_2010_us_860_00_500k.shp")
 # Texas zip code prefixes based on wiki
 # Ref from https://simple.wikipedia.org/wiki/List_of_ZIP_Code_prefixes#700s
 texas_prefixes = ['733'] + [str(prefix) for prefix in range(750, 800)]
-texas_prefixes = ['733'] + [str(prefix) for prefix in range(750, 800)]
-# Ensure consistent string format
-texas_zip_codes['ZCTA5'] = texas_zip_codes['ZCTA5'].astype(str).str.strip()
 # Filter based on the first three characters of the ZIP column
+
 texas_zip_codes = zip_codes[zip_codes['ZCTA5'].str[:3].isin(texas_prefixes)]
+# Ensure consistent string format
+
+texas_zip_codes['ZCTA5'] = texas_zip_codes['ZCTA5'].astype(str).str.strip()
 
 # Convert ZIP_CD to string
 short_term_pos2016['ZIP_CD'] = pd.to_numeric(short_term_pos2016['ZIP_CD'], errors='coerce').fillna(0).astype(int)
