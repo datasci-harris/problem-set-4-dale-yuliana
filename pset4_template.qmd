@@ -497,7 +497,7 @@ directly_affected_zip_gdf = texas_zip_codes.merge(
 directly_affected_zip_gdf['geometry'] = directly_affected_zip_gdf['geometry'].buffer(10 / 69)  ## consider true distance
 
 # Perform the spatial join to find affected ZIP codes
-affected_zips = gpd.sjoin(texas_zip_codes, directly_affected_zip_gdf, how = 'inner', predicat e ='intersects')
+affected_zips = gpd.sjoin(texas_zip_codes, directly_affected_zip_gdf, how = 'inner', predicate = 'intersects')
 
 # Check the columns in affected_zips to ensure we are using the correct names
 print("Columns in affected_zips after spatial join:")
