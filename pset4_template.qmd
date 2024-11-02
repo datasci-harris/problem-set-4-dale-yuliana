@@ -97,42 +97,45 @@ for cell in short_term_pos2016['PGM_TRMNTN_CD']:
 
 ##### 3. 
 ```{python}
-# Load 2017 data
+# Deal with 2017
+## Load 2017 data
 pos2017 = pd.read_csv("pos2017.csv")
 pos2017['year'] = 2017
-# Subset 2017
+## Subset 2017
 short_term_pos2017 = filter_short_term_hospitals(pos2017)
-# Count the number of short-term hospitals 
+## Count the number of short-term hospitals 
 hospitals_2017 = len(short_term_pos2017)
 print(f'There are {hospitals_2017} short-term hospitals in 2017')
-# Check whether there are closed hospitals
+## Check whether there are closed hospitals
 for cell in short_term_pos2017['PGM_TRMNTN_CD']:
     if cell == 1:
         print('This number of 2017 short-term hospitals does not make sense as it contains closed hospitals')
         break
 
-# Load 2018 data
+# Deal  with 2018
+## Load 2018 data
 pos2018 = pd.read_csv("pos2018.csv")
 pos2018['year'] = 2018
-# Subset 2018
+## Subset 2018
 short_term_pos2018 = filter_short_term_hospitals(pos2018)# Count the number of short-term hospitals 
 hospitals_2018 = len(short_term_pos2018)
 print(f'There are {hospitals_2018} short-term hospitals in 2018')
-# Check whether there are closed hospitals
+## Check whether there are closed hospitals
 for cell in short_term_pos2018['PGM_TRMNTN_CD']:
     if cell == 1:
         print('This number of 2018 short-term hospitals does not make sense as it contains closed hospitals')
         break
 
-# Load 2019 data
+# Deal with 2019
+## Load 2019 data
 pos2019 = pd.read_csv("pos2019.csv")
 pos2019['year'] = 2019
-# Subset 2019
+## Subset 2019
 short_term_pos2019 = filter_short_term_hospitals(pos2019)
-# Count the number of short-term hospitals 
+## Count the number of short-term hospitals 
 hospitals_2019 = len(short_term_pos2019)
 print(f'There are {hospitals_2019} short-term hospitals in 2019')
-# Check whether there are closed hospitals
+## Check whether there are closed hospitals
 for cell in short_term_pos2019['PGM_TRMNTN_CD']:
     if cell == 1:
         print('This number of 2019 short-term hospitals does not make sense as it contains closed hospitals')
@@ -145,14 +148,12 @@ Same reasons as question 2.
 # ref from https://www.askpython.com/python-modules/pandas/combine-csv-files-using-python
 # Append 2016-2019 data
 short_term_pos2016_2019 = pd.concat([short_term_pos2016, short_term_pos2017, short_term_pos2018, short_term_pos2019], ignore_index=True)
-
 # Build the overall dataframe
 pos = short_term_pos2016_2019
 
 # Plot the number of observations by year.
 ## Rebuild data frame for chart
 observations = pos.groupby(['year']).size().reset_index(name = 'count')
-
 chart = alt.Chart(observations, title = 'The Number of Observations by Year').mark_line().encode(
     alt.X('year:O', title = 'Year'),
     alt.Y('count:Q', title = 'Number of Observations', scale = alt.Scale(domainMin = 7000)),
@@ -164,8 +165,7 @@ chart.show()
 ```
 
 ```{python}
-# Additional step: 
-# Convert ZIP_CD to string for future use
+# Additional step: Convert ZIP_CD to string for future use
 pos['ZIP_CD'] = pd.to_numeric(pos['ZIP_CD'], errors='coerce').fillna(0).astype(int)
 pos['ZIP_CD'] = pos['ZIP_CD'].astype(str)
 ```
@@ -196,7 +196,7 @@ These two graphs are almost the same, which shows that the dataset does not cont
 
 1. 
 ```{python}
-pos['ZIP_CD'] = pos['ZIP_CD'].astype(str) # convert zipcode to str for later agg
+pos["ZIP_CD"] = pos["ZIP_CD"].astype(str) # convert zipcode to str for later agg
 
 # find the active hospitals in 2016
 active_2016 = pos[(pos["PGM_TRMNTN_CD"] == 0) & (pos["year"] == 2016)]
@@ -205,10 +205,10 @@ active_2016 = pos[(pos["PGM_TRMNTN_CD"] == 0) & (pos["year"] == 2016)]
 close = pos[(pos["PGM_TRMNTN_CD"] == 1) & (pos["year"] > 2016)]
 
 # df when both conditions satisfied
-suspected_closures = pd.merge(active_2016, close, on=["PRVDR_NUM"], how="inner")
+suspected_closures = pd.merge(active_2016, close, on = ["PRVDR_NUM"], how = "inner")
 
 # drop the repeated value, clean up the df
-suspected_closures = suspected_closures.drop_duplicates(subset=["PRVDR_NUM"], keep="first")
+suspected_closures = suspected_closures.drop_duplicates(subset = ["PRVDR_NUM"], keep = "first")
 suspected_closures = suspected_closures[["FAC_NAME_x", "PRVDR_NUM", "ZIP_CD_x", "year_y"]] # kept year_y for closed year
 
 # rename columns
@@ -219,7 +219,7 @@ print(len(suspected_closures), "hospitals that were active in 2016 were suspecte
 
 2. 
 ```{python}
-suspected_closures_sorted = suspected_closures.sort_values(by = "FAC_NAME", ascending=True).reset_index(drop=True)
+suspected_closures_sorted = suspected_closures.sort_values(by = "FAC_NAME", ascending = True).reset_index(drop = True)
 suspected_closures_sorted.head(10)
 ```
 
@@ -242,9 +242,9 @@ unchange_zip = active[active["future"] >= active["PGM_TRMNTN_CD"]]
 merger = pd.merge(
     suspected_closures,
     unchange_zip,
-    left_on=["ZIP_CD", "year"],
-    right_on=["ZIP_CD", "year"],
-    how="inner"
+    left_on = ["ZIP_CD", "year"],
+    right_on = ["ZIP_CD", "year"],
+    how = "inner"
 )
 
 print(len(merger), "hospitals fit this definition of potentially being a merger/acquisition.")
@@ -261,7 +261,7 @@ print(len(closure), "hospitals have left after correcting for this.")
 
     c.
 ```{python}
-closure_sorted = closure.sort_values(by = "FAC_NAME", ascending=True).reset_index(drop=True)
+closure_sorted = closure.sort_values(by = "FAC_NAME", ascending = True).reset_index(drop = True)
 closure_sorted.head(10)
 ```
 
@@ -275,7 +275,7 @@ from IPython.display import Image
 Image("file_type.png")
 ```
 
- .shp (Shapefile): This is the main file that stores the geometric shape data.
+.shp (Shapefile): This is the main file that stores the geometric shape data.
 
 .shx (Shape Index Format): This index file  provides the spatial index for locating the features in the .shp file.
 
@@ -311,22 +311,22 @@ texas_prefixes = ['733'] + [str(prefix) for prefix in range(750, 800)]
 # Filter based on the first three characters of the ZIP column
 texas_zip_codes = zip_codes[zip_codes['ZCTA5'].str[:3].isin(texas_prefixes)]
 
-# Ensure consistent string format
+# Ensure ZCTA5 format consistent
 texas_zip_codes['ZCTA5'] = texas_zip_codes['ZCTA5'].astype(str).str.strip()
 
 # Convert ZIP_CD to string (for 2016)
-short_term_pos2016['ZIP_CD'] = pd.to_numeric(short_term_pos2016['ZIP_CD'], errors='coerce').fillna(0).astype(int)
+short_term_pos2016['ZIP_CD'] = pd.to_numeric(short_term_pos2016['ZIP_CD'], errors = 'coerce').fillna(0).astype(int)
 short_term_pos2016['ZIP_CD'] = short_term_pos2016['ZIP_CD'].astype(str)
 
 # Calculate the number of hospitals per zip code in 2016
 hospitals_per_zip = short_term_pos2016.groupby('ZIP_CD').size().reset_index(name = 'hospitals')
 
 # Merge with Texas zip code data
-texas_hospitals = texas_zip_codes.merge(hospitals_per_zip, left_on='ZCTA5', right_on='ZIP_CD', how='left')
+texas_hospitals = texas_zip_codes.merge(hospitals_per_zip, left_on = 'ZCTA5', right_on = 'ZIP_CD', how = 'left')
 texas_hospitals['hospitals'] = texas_hospitals['hospitals'].fillna(0)
 
 # Draw the choropleth plot
-texas_hospitals.plot(column = "hospitals", legend=True).set_axis_off()
+texas_hospitals.plot(column = "hospitals", legend = True).set_axis_off()
 ```
 
 ## Calculate zip code’s distance to the nearest hospital (20 pts) (*)
@@ -373,9 +373,9 @@ one_hospitals = texas_hospitals[texas_hospitals["hospitals"] >= 1]
 # subset of zips_texas_borderstates_centroids
 zips_withhospital_centroids = zips_texas_borderstates_centroids.merge(
     one_hospitals, 
-    left_on='ZCTA5', 
-    right_on='ZCTA5', 
-    how='inner'
+    left_on = 'ZCTA5', 
+    right_on = 'ZCTA5', 
+    how = 'inner'
 )
 ```
 
@@ -450,7 +450,7 @@ This value make sense as the average distance in every TX zip code is expected t
 true_distances = true_distances.set_geometry("geometry")
 
 # Draw the choropleth plot
-true_distances.plot(column = "miles", legend=True).set_axis_off()
+true_distances.plot(column = "miles", legend = True).set_axis_off()
 ```
     
 ## Effects of closures on access in Texas (15 pts)
@@ -479,11 +479,8 @@ texas_hospitals_with_closures = texas_zip_codes.merge(
 )
 texas_hospitals_with_closures['num_closures'] = texas_hospitals_with_closures['num_closures'].fillna(0)
 
-# Plotting the choropleth map
-plt.figure(figsize=(10, 8))
-texas_hospitals_with_closures.plot(column='num_closures', legend=True).set_axis_off()
-
-# Number of directly affected ZIP codes
+# Plot the choropleth map and print result
+texas_hospitals_with_closures.plot(column = 'num_closures', legend = True).set_axis_off()
 directly_affected_zip_num = texas_hospitals_with_closures[texas_hospitals_with_closures['num_closures'] > 0].shape[0]
 print(f"There are {directly_affected_zip_num} directly affected ZIP codes in Texas.")
 ```
@@ -491,35 +488,33 @@ print(f"There are {directly_affected_zip_num} directly affected ZIP codes in Tex
 ##### 3. 
 
 ```{python}
-# Use merge to filter directly affected ZIP codes
+# Merge to filter directly affected ZIP codes
 directly_affected_zip_gdf = texas_zip_codes.merge(
-    texas_closures_by_zip[['ZIP_CD']], left_on='ZCTA5', right_on='ZIP_CD', how='inner'
+    texas_closures_by_zip[['ZIP_CD']], left_on = 'ZCTA5', right_on = 'ZIP_CD', how = 'inner'
 )
 
-# Generate a 10-mile buffer around each directly affected ZIP code
-directly_affected_zip_gdf['geometry'] = directly_affected_zip_gdf['geometry'].buffer(10 / 69)  # consider true distance
+# Generate buffer
+directly_affected_zip_gdf['geometry'] = directly_affected_zip_gdf['geometry'].buffer(10 / 69)  ## consider true distance
 
 # Perform the spatial join to find affected ZIP codes
-affected_zips = gpd.sjoin(texas_zip_codes, directly_affected_zip_gdf, how='inner', predicate='intersects')
+affected_zips = gpd.sjoin(texas_zip_codes, directly_affected_zip_gdf, how = 'inner', predicat e ='intersects')
 
 # Check the columns in affected_zips to ensure we are using the correct names
 print("Columns in affected_zips after spatial join:")
 print(affected_zips.columns)
 
-# Use the renamed columns to filter indirectly affected ZIP codes
-# Filter out any ZIP codes that are directly affected
+# Filter directly affected ZIP codes
 indirectly_affected_zips = affected_zips[~affected_zips['ZCTA5_left'].isin(affected_zips['ZCTA5_right'])]
 
 # Count the number of indirectly affected ZIP codes
-indirectly_affected_zip_num = indirectly_affected_zips['ZCTA5_left'].nunique()# attribute: here I have error for ZCTA5, but I did not realize it, so I use chatgpt to debug here.
+indirectly_affected_zip_num = indirectly_affected_zips['ZCTA5_left'].nunique() ## attribute: here I have error for ZCTA5, but I did not realize it, so I use chatgpt to debug here and found the column name changes .
 print(f"There are {indirectly_affected_zip_num} indirectly affected ZIP codes in Texas.")
-
 ```
 
 ##### 4. 
 
 ```{python}
-# Start by initializing all ZIP codes as "Not Affected"
+# Initializing all ZIP codes as "Not Affected"
 texas_zip_codes['affected_status'] = 'Not Affected'
 
 # Mark Directly Affected ZIP codes
@@ -528,13 +523,13 @@ texas_zip_codes.loc[texas_zip_codes['ZCTA5'].isin(directly_affected_zip_gdf['ZCT
 # Mark Indirectly Affected ZIP codes
 texas_zip_codes.loc[texas_zip_codes['ZCTA5'].isin(indirectly_affected_zips['ZCTA5_left']), 'affected_status'] = 'Indirectly Affected'
 
-# Plotting the choropleth map with three categories
+# Plotchoropleth map with three categories
 texas_zip_codes.plot(column='affected_status', legend=True).set_axis_off()
-
 ```
 
 ## Reflecting on the exercise (10 pts) 
-1. The following are the potential issues of the "first pass" method:
+##### 1. 
+The following are the potential issues of the "first pass" method:
 (1) Hospital closures and reopenings may be reported with delays in the datasets. Therefore, measuring the unchanging number of active hospitals might not fully capture the changes.
 
 (2) Some hospitals may temporarily cease operations (e.g. for renovations or emergency response), which could mistakenly signal a closure. 
@@ -544,10 +539,10 @@ Our approach to identifying zip codes affected by closures uses the true distanc
 
 Thus, we have come up the following two improvments:
 
-1. Add population weights:
+(1) Add population weights:
 We wnat to consider the population of each ZIP code when assessing impact. For example, closures in more densely populated ZIP codes may affect more people and therefore represent a greater loss of access.
 This could be done by incorporating population data on population by ZIP code to weigh the impact of each closure accordingly.
 
-2. Distinguish different types of facilities:
+(2) Distinguish different types of facilities:
 Not all hospital closures are equal in terms of impact on access. Differentiate closures based on the type of healthcare facility, such as large hospitals, clinics, or specialized centers would couase different-level losses. For example, the closure of an emergency care hospital would have a different impact compared to a smaller outpatient clinic. Thus, by categorizing closures in terms of facility type, we can better capture the level of service loss. 
 
