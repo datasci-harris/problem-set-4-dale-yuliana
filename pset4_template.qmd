@@ -189,51 +189,73 @@ These two graphs are almost the same, which shows that the dataset does not cont
 
 1. 
 ```{python}
-pos['ZIP_CD'] = pos['ZIP_CD'].astype(str) # convert zipcode to str
+pos['ZIP_CD'] = pos['ZIP_CD'].astype(str) # convert zipcode to str for later agg
 
-# find the close pos after 2016, subgroup
+# find the active hospitals in 2016
+active_2016 = pos[(pos["PGM_TRMNTN_CD"] == 0) & (pos["year"] == 2016)]
+
+# find the close hospitals after 2016
 close = pos[(pos["PGM_TRMNTN_CD"] == 1) & (pos["year"] > 2016)]
-close = close.drop_duplicates(subset=["FAC_NAME"], keep="first")
-close = close[["FAC_NAME", "ZIP_CD", "year"]]
 
-print(len(close), "hospitals that were active in 2016 were suspected to have closed by 2019.")
+# df when both conditions satisfied
+suspected_closures = pd.merge(active_2016, close, on=["PRVDR_NUM"], how="inner")
+
+# drop the repeated value, clean up the df
+suspected_closures = suspected_closures.drop_duplicates(subset=["PRVDR_NUM"], keep="first")
+suspected_closures = suspected_closures[["FAC_NAME_x", "PRVDR_NUM", "ZIP_CD_x", "year_y"]] # kept year_y for closed year
+
+# rename columns
+suspected_closures.columns = ["FAC_NAME", "PRVDR_NUM", "ZIP_CD", "year"]
+
+print(len(suspected_closures), "hospitals that were active in 2016 were suspected to have closed by 2019.")
 ```
 
 2. 
 ```{python}
-close_sorted = close.sort_values(by = "FAC_NAME", ascending=True).reset_index(drop=True)
-close_sorted.head(10)
+suspected_closures_sorted = suspected_closures.sort_values(by = "FAC_NAME", ascending=True).reset_index(drop=True)
+suspected_closures_sorted.head(10)
 ```
 
 3. 
+    a.
 ```{python}
-# number of active hospital by zipcode
+# number of active hospitals per zipcode per year
 active = pos[(pos["PGM_TRMNTN_CD"] == 0) & (pos["year"] > 2016)]
-active_zip = active.groupby(["ZIP_CD", "year"]).agg({
-    "FAC_NAME" : "count",
+active = active.groupby(["ZIP_CD", "year"]).agg({
+    "PGM_TRMNTN_CD" : "count",
 }).reset_index()
 
-# number of active hospitals does not decrease
-active_zip['future'] = active_zip.groupby('ZIP_CD')['FAC_NAME'].shift(-1)
-active_diff = active_zip[active_zip["future"] >= active_zip["FAC_NAME"]]
+# number of active hospitals next year
+active["future"] = active.groupby("ZIP_CD")["PGM_TRMNTN_CD"].shift(-1)
 
-# remove any suspected hospital closures
-close["suspect"] = close["ZIP_CD"].isin(active_diff["ZIP_CD"])
-active_clean = close[close["suspect"] == False]
+# number of active hospitals does not decrease
+unchange_zip = active[active["future"] >= active["PGM_TRMNTN_CD"]]
+
+# checking merger
+merger = pd.merge(
+    suspected_closures,
+    unchange_zip,
+    left_on=["ZIP_CD", "year"],
+    right_on=["ZIP_CD", "year"],
+    how="inner"
+)
+
+print(len(merger), "hospitals fit this definition of potentially being a merger/acquisition.")
 ```
 
     b.
 ```{python}
-suspected_closure = close[close["suspect"]]
-print(len(suspected_closure), "hospitals fit this definition of potentially being a merger/acquisition.")
+# remove merger
+suspected_closures["merge"] = suspected_closures["PRVDR_NUM"].isin(merger["PRVDR_NUM"])
+closure = suspected_closures[suspected_closures["merge"] == False]
 
-print(len(active_clean), "hospitals have left after correcting for this.")
+print(len(closure), "hospitals have left after correcting for this.")
 ```
 
     c.
 ```{python}
-active_clean_sorted = active_clean.sort_values(by = "FAC_NAME", ascending=True).reset_index(drop=True)
-active_clean_sorted.head(10)
+closure_sorted = closure.sort_values(by = "FAC_NAME", ascending=True).reset_index(drop=True)
+closure_sorted.head(10)
 ```
 
 ## Download Census zip code shapefile (10 pt) 
@@ -309,12 +331,12 @@ zip_codes["centroid"] = zip_codes["geometry"].centroid
 
 # Create a new GeoDataFrame for centroids
 zips_all_centroids = zip_codes[["ZCTA5", "centroid"]]
-zips_all_centroids = gpd.GeoDataFrame(zips_all_centroids, geometry="centroid")
+zips_all_centroids = zips_all_centroids.set_geometry("centroid")
 
 print("Dimensions of zips_all_centroids:", zips_all_centroids.shape)
 ```
+
 ZCTA5: the ZIP code for each geographic area. Each row is a ZIP code.
-geometry: each ZIP code's polygonal boundary.
 centroid: the centroid points of each ZIP code area, representing the center of each ZIP code's polygonal boundary.
 
 2. 
@@ -328,25 +350,31 @@ texas_borderstates_prefixes = [str(prefix) for prefix in range(700, 800)] + [str
 # all zip codes in Texas or a bordering state
 zips_texas_borderstates_centroids = zips_all_centroids[zips_all_centroids['ZCTA5'].str[:3].isin(texas_borderstates_prefixes)]
 
+# Attribution: I ask ChatGPT how to check unique value
 unique_texas_zips = zips_texas_centroids['ZCTA5'].nunique()
 unique_borderstate_zips = zips_texas_borderstates_centroids['ZCTA5'].nunique()
 
-# Display the counts
-print(f"Unique ZIP codes in Texas: {unique_texas_zips, len(zips_texas_centroids)}")
-print(f"Unique ZIP codes in Texas and bordering states: {unique_borderstate_zips, len(zips_texas_borderstates_centroids)}")
+print(f"Unique ZIP codes in Texas: {unique_texas_zips}")
+print(f"Unique ZIP codes in Texas and bordering states: {unique_borderstate_zips}")
 ```
 
 3. 
 ```{python}
-# subset of zips_texas_borderstates_centroids
-zips_withhospital_centroids = zips_texas_borderstates_centroids.merge(hospitals_per_zip, left_on='ZCTA5', right_on='ZIP_CD', how='left')
-
 # zip codes with at least 1 hospital
-zips_withhospital_centroids = zips_withhospital_centroids[zips_withhospital_centroids["hospitals"] >= 1]
+one_hospitals = texas_hospitals[texas_hospitals["hospitals"] >= 1]
+
+# subset of zips_texas_borderstates_centroids
+zips_withhospital_centroids = zips_texas_borderstates_centroids.merge(
+    one_hospitals, 
+    left_on='ZCTA5', 
+    right_on='ZCTA5', 
+    how='inner'
+)
 ```
 
-I decide to do a left merge between zips_texas_borderstates_centroids and hospitals_per_zip. This keeps all columns from the zips_texas_borderstates_centroids and only adds hospitals column with rows from hospitals_per_zip where there is a matching ZIP code. 
-I merge on the ZIP code columns, specifically ZCTA5 in zips_texas_borderstates_centroids and ZIP_CD in hospitals_per_zip.
+I used an inner merge, keeping only the rows in zips_texas_borderstates_centroids that have matching ZCTA5 values in one_hospitals.
+The inner merge ensures that only the rows with matching ZCTA5 values from both df are retained. Any rows in zips_texas_borderstates_centroids without a corresponding match in one_hospitals will be excluded from the result.
+I merge on the variable "ZCTA5" because it is the common identifier in both df, representing ZIP codes, which allows for a comparison between zips_texas_borderstates_centroids and one_hospitals.
 
 4. 
     a.
@@ -391,29 +419,32 @@ true_distances = gpd.sjoin_nearest(
 end_time = time.time()
 true_time = end_time - start_time
 
-print(f"True time for entire dataset: {true_time:.2f} seconds")
+print(f"True time for entire dataset: {true_time:.2f} seconds. This is not close to estimation {estimate_time:.2f} seconds")
 ```
-The true time is not close to estimation.
 
     c.
-    The unit in .prj file is in ["Degree",0.017453292519943295], which is an angular unit used in geographic coordinate systems. According to the internet, 1 degree is about 69 miles.
+    The unit in .prj file is in ["Degree",0.017453292519943295], which "Degree" unit is an angular unit used in geographic coordinate systems. According to the internet, 1 degree is about 69 miles.
     ref:https://www.nwcg.gov/course/ffm/location/610-latitude-longitude#:~:text=One%20degree%20of%20latitude%20equals,second%20is%20about%20100%20feet.
 
 5. 
     a.
-    The unit is in "Degree"
+The unit is in "Degree"
 
     b.
 
 ```{python}
-average_distance = true_distances["distance"].mean()
-distance_mile = average_distance * 69
-
-print(f"The average distance in miles is {distance_mile:.2f}")
+true_distances["miles"] = true_distances["distance"] * 69
 ```
-This number make sense.
+This value make sense as the average distance in every TX zip code is expected to be several miles to the nearest zip code.
 
     c.
+```{python}
+# replace centriod back to orignial geometry
+true_distances = true_distances.set_geometry("geometry")
+
+# Draw the choropleth plot
+true_distances.plot(column = "miles", legend=True).set_axis_off()
+```
     
 ## Effects of closures on access in Texas (15 pts)
 
@@ -423,3 +454,7 @@ This number make sense.
 4. 
 
 ## Reflecting on the exercise (10 pts) 
+1. The following are the potential issues of the "first pass" method:
+(1) Hospital closures and reopenings may be reported with delays in the datasets. Therefore, measuring the unchanging number of active hospitals might not fully capture the changes.
+
+(2) Some hospitals may temporarily cease operations (e.g. for renovations or emergency response), which could mistakenly signal a closure. 
